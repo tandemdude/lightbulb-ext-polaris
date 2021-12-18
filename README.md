@@ -1,7 +1,7 @@
 # Polaris
 
-Redis-backed message queue implementation that can hook into a discord bot written with hikari-lightbulb. This is
-eventually intended to be the backend communication between a bot and a web dashboard.
+Redis-backed FIFO message queue implementation that can hook into a discord bot written with hikari-lightbulb. This
+is eventually intended to be the backend communication between a bot and a web dashboard.
 
 ## Installation
 

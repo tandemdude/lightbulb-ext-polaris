@@ -11,6 +11,25 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install Polaris
 pip install git+https://github.com/tandemdude/lightbulb-ext-polaris.git
 ```
 
+## Usage
+
+```python
+
+import lightbulb
+from lightbulb.ext import polaris
+
+bot = lightbulb.BotApp(...)
+bot.d.polaris = polaris.Polaris(bot, "redis://your_redis_server_url")
+
+
+@bot.d.polaris.handler_for("test_message", polaris.MessageType.CREATE)
+async def on_test_message(message: polaris.Message):
+    print(f"Message received: {message}")
+
+
+bot.run()
+```
+
 ## Issues
 If you find any bugs, issues, or unexpected behaviour while using the library, 
 you should open an issue with details of the problem and how to reproduce if possible. 

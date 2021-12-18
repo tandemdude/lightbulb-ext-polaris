@@ -19,30 +19,57 @@ from __future__ import annotations
 
 __all__ = ["MessageType", "Message"]
 
+import typing as t
 import dataclasses
 import enum
 
 
 class MessageType(enum.IntEnum):
+    """
+    Enum representing the type of the given polaris message.
+    """
     CREATE = 0
+    """A create operation."""
     READ = 1
+    """A read operation. (this may be removed)"""
     UPDATE = 2
+    """An update (edit) operation."""
     DELETE = 3
+    """A delete operation."""
 
 
 @dataclasses.dataclass
 class Message:
+    """
+    Dataclass representing a message received from polaris' redis
+    message queue.
+    """
+    id: str
+    """The unique ID of this message."""
     type: MessageType
+    """The type of this message."""
     name: str
+    """The name of this message."""
     data: dict
+    """The associated data payload for this message."""
+
+    def __repr__(self) -> str:
+        return f"Message(id={self.id}, type={self.type}, name={self.name})"
 
     @classmethod
-    def from_json(cls, payload: dict):
+    def from_json(cls, payload: dict) -> Message:
+        """
+        Create a Message object from a raw message payload.
+
+        Args:
+            payload (:obj:`dict`): Paylod to create the Message object from.
+        """
         return cls(
+            payload["id"],
             MessageType(payload["type"]),
             payload["name"],
             payload.get("data", {})
         )
 
-    async def respond(self, *args, **kwargs):
+    async def respond(self, *args: t.Any, **kwargs: t.Any) -> None:
         raise NotImplementedError

@@ -15,3 +15,5 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
+from . import sidebar
+from .sidebar import *

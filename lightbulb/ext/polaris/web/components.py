@@ -17,105 +17,53 @@
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-__all__ = ["Renderable", "Body", "Page", "Paragraph", "Grid"]
+__all__ = ["Body", "Page", "Paragraph", "Div"]
 
-import functools
 import abc
 import typing as t
-import inspect
 
-from jinja2 import Environment
-from jinja2 import BaseLoader
-
-
-def _to_cls_string(classes: t.Union[str, t.Iterable[str]]):
-    return classes if isinstance(classes, str) else " ".join(classes)
+from . import base
+from . import utils
 
 
-class Renderable(abc.ABC):
-    _ENVIRON = Environment(loader=BaseLoader())
-
-    @property
-    def classes(self) -> t.Union[str, t.Iterable[str]]:
-        return ""
-
-    def _render(self, template_str: str, **kwargs) -> str:
-        return self._ENVIRON.from_string(template_str.strip()).render(**kwargs)
-
-    @abc.abstractmethod
-    def render(self, **kwargs) -> str:
-        ...
-
-
-class ComponentGroup(Renderable):
-    html = """
-    {% for component in components %}
-        {{ component.render(**_extras) }}
-    {% endfor %}
-    """
-
-    def __init__(self):
-        self.components = []
-
-        items = [*self.__class__.__dict__.values(), *self.__dict__.values()]
-        for item in items:
-            if isinstance(item, Renderable):
-                self.components.append(item)
-            elif inspect.isclass(item) and issubclass(item, Renderable):
-                self.components.append(item())
-
-    def render(self, **kwargs) -> str:
-        return self._render(
-            ComponentGroup.html,
-            components=self.components,
-            _extras=kwargs,
-            **kwargs,
-        )
-
-
-class Paragraph(Renderable, abc.ABC):
+class Paragraph(base.Renderable, abc.ABC):
     html = """<p class="{{ classes }}">{{ content }}</p>"""
 
     @property
-    def content(self) -> t.Union[str, Renderable]:
+    def content(self) -> t.Union[str, base.Renderable]:
         return "Hello World!"
 
     def render(self, **kwargs) -> str:
         content = self.content
-        if isinstance(content, Renderable):
+        if isinstance(content, base.Renderable):
             content = content.render(**kwargs)
 
         return self._render(
             Paragraph.html,
-            classes=_to_cls_string(self.classes),
+            classes=utils.to_cls_string(self.classes),
             content=content,
             **kwargs,
         )
 
 
-class Grid(ComponentGroup):
+class Div(base.ComponentGroup):
     html = """
-    <div class="grid grid-cols-{{columns}} {{ classes }}">
+    <div class="{{ classes }}">
         {{ inner }}
     </div>
     """
 
-    @property
-    def columns(self) -> int:
-        return 3
-
     def render(self, **kwargs) -> str:
         out = super().render(**kwargs)
         return self._render(
-            Grid.html,
+            Div.html,
             inner=out,
-            classes=_to_cls_string(self.classes),
-            columns=self.columns,
+            classes=utils.to_cls_string(self.classes),
             **kwargs,
         )
 
 
-class Body(ComponentGroup):
+class Body(base.ComponentGroup):
     html = """
     <body class="{{ classes }}">
         {{ inner }}
@@ -126,13 +74,13 @@ class Body(ComponentGroup):
         out = super().render(**kwargs)
         return self._render(
             Body.html,
-            classes=_to_cls_string(self.classes),
+            classes=utils.to_cls_string(self.classes),
             inner=out,
             **kwargs,
         )
 
 
-class Page(Renderable):
+class Page(base.Renderable):
     html = """
     <html lang="en">
     <head>
@@ -145,7 +93,7 @@ class Page(Renderable):
     </html>
     """
 
-    def __init__(self, title: str, body: t.Optional[Renderable] = None) -> None:
+    def __init__(self, title: str, body: t.Optional[base.Renderable] = None) -> None:
         self.title = title
         self.body = body or Body()
 

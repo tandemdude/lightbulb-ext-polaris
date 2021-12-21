@@ -70,7 +70,9 @@ class Polaris:
                 handler = self._fallback_handler
 
             if handler is not None:
-                await handler(message)
+                asyncio.create_task(handler(message))
+            else:
+                _LOGGER.warning("Discarding message: %s (%s) as no handler was found", message.name, message.type)
 
     async def run(self, _: lightbulb.LightbulbStartedEvent) -> None:
         _LOGGER.info("Listening for messages")

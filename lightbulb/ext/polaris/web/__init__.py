@@ -15,10 +15,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
-from . import client
-from . import messages
-from . import web
-from .client import *
-from .messages import *
+from . import components
+from .components import *
 
-__version__ = "0.0.0a0"
+__all__ = ["Renderable", "Body", "Page", "Paragraph", "Grid"]

@@ -15,6 +15,9 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
-from . import components
-
-__all__ = ["components"]
+from . import basic
+from . import builtin
+from . import utils
+from .basic import *
+from .builtin import *
+from .utils import *

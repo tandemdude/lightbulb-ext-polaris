@@ -15,6 +15,26 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
-from . import components
+from __future__ import annotations
 
-__all__ = ["components"]
+__all__ = ["BodyWithSidebar"]
+
+from .. import basic
+
+
+class BodyWithSidebar(basic.Body):
+    classes = "grid grid-cols-5 bg-gray-300 font-mono"
+
+    class Sidebar(basic.Div):
+        classes = "col-span-1 bg-gray-800"
+
+        class P1(basic.Paragraph):
+            content = "Some Text"
+            classes = "mt-10 text-center text-gray-200 text-2xl"
+
+    class Content(basic.Div):
+        classes = "col-span-4"
+
+        class P2(basic.Paragraph):
+            content = "Some More Text"
+            classes = "text-center mt-10 text-2xl text-gray-800"

@@ -17,13 +17,27 @@
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-__all__ = ["Body", "Page", "Paragraph", "Div"]
+__all__ = ["Body", "Page", "Paragraph", "Div", "RawHTML"]
 
 import abc
 import typing as t
 
-from . import base
-from . import utils
+from .. import base
+from .. import utils
+
+
+class RawHTML(base.Renderable, abc.ABC):
+    @property
+    @abc.abstractmethod
+    def html(self) -> str:
+        ...
+
+    def render(self, **kwargs) -> str:
+        return self._render(
+            self.html,
+            classes=utils.to_cls_string(self.classes),
+            **kwargs
+        )
 
 
 class Paragraph(base.Renderable, abc.ABC):
@@ -46,7 +60,7 @@ class Paragraph(base.Renderable, abc.ABC):
         )
 
 
-class Div(base.ComponentGroup):
+class Div(base.ComponentGroup, abc.ABC):
     html = """
     <div class="{{ classes }}">
         {{ inner }}
@@ -63,7 +77,7 @@ class Div(base.ComponentGroup):
         )
 
 
-class Body(base.ComponentGroup):
+class Body(base.ComponentGroup, abc.ABC):
     html = """
     <body class="{{ classes }}">
         {{ inner }}

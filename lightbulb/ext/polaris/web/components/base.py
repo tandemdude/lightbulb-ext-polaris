@@ -42,7 +42,7 @@ class Renderable(abc.ABC):
         ...
 
 
-class ComponentGroup(Renderable):
+class ComponentGroup(Renderable, abc.ABC):
     html = """
     {% for component in components %}
         {{ component.render(**_extras) }}

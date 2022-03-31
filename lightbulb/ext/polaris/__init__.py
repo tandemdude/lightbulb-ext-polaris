@@ -17,8 +17,16 @@
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
 from . import client
 from . import messages
-from . import web
 from .client import *
 from .messages import *
+
+__all__ = [
+    "client",
+    "Client",
+    "BotClient",
+    "Message",
+    "MessageType",
+    "Response"
+]
 
 __version__ = "0.0.0a0"

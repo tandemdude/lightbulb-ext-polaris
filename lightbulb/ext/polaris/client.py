@@ -19,7 +19,6 @@ from __future__ import annotations
 
 __all__ = ["Client", "BotClient"]
 
-import abc
 import asyncio
 import logging
 import typing as t

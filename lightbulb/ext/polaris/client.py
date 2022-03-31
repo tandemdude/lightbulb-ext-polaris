@@ -17,8 +17,9 @@
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-__all__ = ["Polaris"]
+__all__ = ["Client", "BotClient"]
 
+import abc
 import asyncio
 import logging
 import typing as t
@@ -27,33 +28,59 @@ import aioredis
 import hikari
 import orjson
 
-import lightbulb
-
 from . import messages
 
 _LOGGER = logging.getLogger("lightbulb.ext.polaris")
 MessageHandlerT = t.Callable[[messages.Message], t.Coroutine[t.Any, t.Any, None]]
 
 
-class Polaris:
-    __slots__ = ("_app", "_redis_url", "_queue_name", "_redis_cli", "_poll_task", "_handlers", "_fallback_handler", "_resp_expire")
+class Client:
+    __slots__ = ("_redis_url", "_queue_name", "_resp_expire", "_redis_cli")
 
-    def __init__(self, app: lightbulb.BotApp, redis_url: str, queue_name: str = "polaris", resp_expire: int = 15 * 60):
-        self._app: lightbulb.BotApp = app
+    def __init__(self, redis_url: str, queue_name: str = "polaris", resp_expire: int = 15 * 60) -> None:
         self._redis_url: str = redis_url
         self._queue_name: str = queue_name
         self._resp_expire: int = resp_expire
         self._redis_cli: aioredis.Redis = aioredis.from_url(self._redis_url)
+
+        messages.Message._polaris = self
+        messages.Response._polaris = self
+
+    async def send_message(self, msg: messages.Message, wait_for_response: bool = False) -> t.Optional[messages.Response]:
+        payload = orjson.dumps(msg.to_json())
+        await self._redis_cli.lpush(f"{self._queue_name}-mq", payload)
+
+        if wait_for_response:
+            return await self.wait_for_response(msg.id)
+
+    async def send_response(self, resp: messages.Response) -> None:
+        payload = orjson.dumps(resp.to_json())
+        await self._redis_cli.lpush(resp.id, payload)
+        await self._redis_cli.expire(resp.id, self._resp_expire)
+
+    async def wait_for_response(self, id: str) -> messages.Response:
+        async with self._redis_cli as r:
+            out = await r.brpop(id, 0)
+        return messages.Response.from_json(orjson.loads(out))
+
+    async def close(self) -> None:
+        await self._redis_cli.close()
+
+
+class BotClient(Client):
+    __slots__ = ("_app", "_poll_task", "_handlers", "_fallback_handler", "_resp_expire", "_running")
+
+    def __init__(self, app: hikari.GatewayBot, *args: t.Any, **kwargs: t.Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._app: hikari.GatewayBot = app
+        self._running: bool = False
         self._poll_task: t.Optional[asyncio.Task[None]] = None
 
         self._handlers: t.Dict[t.Tuple[messages.MessageType, str], MessageHandlerT] = {}
         self._fallback_handler: t.Optional[MessageHandlerT] = None
 
-        self._app.subscribe(lightbulb.LightbulbStartedEvent, self.run)
-        self._app.subscribe(hikari.StoppingEvent, self.close)
-
-        messages.Message._polaris = self
-        messages.Response._polaris = self
+        self._app.subscribe(hikari.StartedEvent, self._run)
+        self._app.subscribe(hikari.StoppingEvent, self._close)
 
     async def _poll(self) -> t.AsyncIterator[bytes]:
         while True:
@@ -74,28 +101,24 @@ class Polaris:
             else:
                 _LOGGER.warning("Discarding message: %s (%s) as no handler was found", message.name, message.type)
 
-    async def run(self, _: lightbulb.LightbulbStartedEvent) -> None:
-        _LOGGER.info("Listening for messages")
-        self._poll_task = asyncio.create_task(self._handle_messages())
+    async def _run(self, _: hikari.StartedEvent) -> None:
+        await self.run()
 
-    async def close(self, _: hikari.StoppingEvent) -> None:
+    async def run(self) -> None:
+        if not self._running:
+            _LOGGER.info("Listening for messages")
+            self._poll_task = asyncio.create_task(self._handle_messages())
+            self._running = True
+
+    async def _close(self, _: hikari.StoppingEvent) -> None:
+        await self.close()
+
+    async def close(self) -> None:
         if self._poll_task is not None:
             self._poll_task.cancel()
-        await self._redis_cli.close()
-
-    async def send_message(self, msg: messages.Message) -> None:
-        payload = orjson.dumps(msg.to_json())
-        await self._redis_cli.lpush(f"{self._queue_name}-mq", payload)
-
-    async def send_response(self, resp: messages.Response) -> None:
-        payload = orjson.dumps(resp.to_json())
-        await self._redis_cli.lpush(resp.id, payload)
-        await self._redis_cli.expire(resp.id, self._resp_expire)
-
-    async def wait_for_response(self, id: str) -> messages.Response:
-        async with self._redis_cli as r:
-            out = await r.brpop(id, 0)
-        return messages.Response.from_json(orjson.loads(out))
+        if self._running:
+            await super().close()
+            self._running = False
 
     def add_handler_for(
         self,

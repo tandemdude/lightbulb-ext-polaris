@@ -43,11 +43,11 @@ class MessageType(enum.IntEnum):
 
 
 class Response:
-    _polaris: t.Optional[client.Polaris] = None
+    _polaris: t.Optional[client.ClientBase] = None
     __slots__ = ("id", "data")
 
-    def __init__(self, id: str, data: dict) -> None:
-        self.id = id
+    def __init__(self, id_: str, data: dict) -> None:
+        self.id = id_
         """The unique ID of the message that this response is for."""
         self.data = data
         """The associated data payload for this response."""
@@ -78,7 +78,7 @@ class Message:
     message queue.
     """
 
-    _polaris: t.Optional[client.Polaris] = None
+    _polaris: t.Optional[client.Client] = None
     __slots__ = ("id", "type", "name", "data")
 
     def __init__(self, type_: MessageType, name: str, data: dict, id_: t.Optional[str] = None) -> None:
@@ -109,6 +109,20 @@ class Message:
         Create a raw message payload from this Message object.
         """
         return {"id": self.id, "type": int(self.type), "name": self.name, "data": self.data}
+
+    async def send(self, wait_for_response: bool = False) -> t.Optional[Response]:
+        """
+        Send this message.
+
+        Args:
+            wait_for_response (:obj:`bool`): Whether or not to wait for a response to this message.
+                Defaults to ``False``.
+
+        Returns:
+            Optional[:obj:`~Response`]: The response to this message, or ``None`` if ``wait_for_response`` was ``False``.
+        """
+        assert Message._polaris is not None
+        return await Message._polaris.send_message(self, wait_for_response)
 
     async def respond(self, data: t.Optional[dict] = None) -> Response:
         """

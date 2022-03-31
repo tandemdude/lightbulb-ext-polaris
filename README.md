@@ -14,12 +14,12 @@ pip install git+https://github.com/tandemdude/lightbulb-ext-polaris.git
 ## Usage
 
 ```python
-
+# Receiving messages
 import lightbulb
 from lightbulb.ext import polaris
 
 bot = lightbulb.BotApp(...)
-bot.d.polaris = polaris.Polaris(bot, "redis://your_redis_server_url")
+bot.d.polaris = polaris.BotClient(bot, "redis://your_redis_server_url")
 
 
 @bot.d.polaris.handler_for("test_message", polaris.MessageType.CREATE)
@@ -28,6 +28,16 @@ async def on_test_message(message: polaris.Message):
 
 
 bot.run()
+```
+
+```python
+# Sending messages
+from lightbulb.ext import polaris
+
+client = polaris.Client("redis://your_redis_server_url")
+
+msg = polaris.Message(polaris.MessageType.CREATE, "test_message", {"foo": "bar"})
+await client.send_message(msg)
 ```
 
 ## Issues
@@ -45,8 +55,3 @@ it is greatly appreciated and lets me know that I'm going in the right direction
 
 ## Links
 - **Repository:** [GitHub](https://github.com/tandemdude/lightbulb-ext-polaris)
-
-## TODO
-
-- [x] BotApp hook
-- [ ] Message submission implementation

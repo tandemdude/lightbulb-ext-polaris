@@ -1,3 +1,4 @@
-hikari-lightbulb~=2.1.1
+hikari-lightbulb~=2.2.0
 aioredis~=2.0.0
 orjson~=3.6.5
+quart~=0.16.2

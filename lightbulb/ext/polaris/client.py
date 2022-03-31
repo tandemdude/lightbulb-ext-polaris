@@ -47,19 +47,19 @@ class Client:
 
     async def send_message(self, msg: messages.Message, wait_for_response: bool = False) -> t.Optional[messages.Response]:
         payload = orjson.dumps(msg.to_json())
-        await self._redis_cli.lpush(f"{self._queue_name}-mq", payload)
+        await self._redis_cli.lpush(self._queue_name, payload)
 
         if wait_for_response:
             return await self.wait_for_response(msg.id)
 
     async def send_response(self, resp: messages.Response) -> None:
         payload = orjson.dumps(resp.to_json())
-        await self._redis_cli.lpush(resp.id, payload)
-        await self._redis_cli.expire(resp.id, self._resp_expire)
+        await self._redis_cli.lpush(f"pl:{resp.id}", payload)
+        await self._redis_cli.expire(f"pl:{resp.id}", self._resp_expire)
 
     async def wait_for_response(self, id: str) -> messages.Response:
         async with self._redis_cli as r:
-            out = await r.brpop(id, 0)
+            out = await r.brpop(f"pl:{id}", 0)
         return messages.Response.from_json(orjson.loads(out))
 
     async def close(self) -> None:

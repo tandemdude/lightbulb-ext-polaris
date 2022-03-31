@@ -43,7 +43,7 @@ class MessageType(enum.IntEnum):
 
 
 class Response:
-    _polaris: t.Optional[client.ClientBase] = None
+    _polaris: t.Optional[client.Client] = None
     __slots__ = ("id", "data")
 
     def __init__(self, id_: str, data: dict) -> None:

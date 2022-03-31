@@ -60,6 +60,7 @@ class Client:
     async def wait_for_response(self, id: str) -> messages.Response:
         async with self._redis_cli as r:
             out = await r.brpop(f"pl:{id}", 0)
+            await r.delete(f"pl:{id}")
         return messages.Response.from_json(orjson.loads(out))
 
     async def close(self) -> None:

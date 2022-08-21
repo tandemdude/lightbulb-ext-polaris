@@ -60,7 +60,7 @@ class Producer:
         async with self._redis_cli as r:
             out = await r.brpop(f"pl:{id}", 0)
             await r.delete(f"pl:{id}")
-        return messages.Response.from_json(orjson.loads(out))
+        return messages.Response.from_json(orjson.loads(out[1]))
 
     async def close(self) -> None:
         await self._redis_cli.close()

@@ -115,7 +115,7 @@ class Message:
         Send this message.
 
         Args:
-            wait_for_response (:obj:`bool`): Whether or not to wait for a response to this message.
+            wait_for_response (:obj:`bool`): Whether to wait for a response to this message.
                 Defaults to ``False``.
 
         Returns:

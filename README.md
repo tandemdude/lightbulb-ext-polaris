@@ -19,7 +19,7 @@ import lightbulb
 import polaris
 
 bot = lightbulb.BotApp(...)
-bot.d.polaris = polaris.Consumer(bot, "redis://your_redis_server_url")
+bot.d.polaris = polaris.Consumer("redis://your_redis_server_url")
 
 
 @bot.d.polaris.handler_for("test_message", polaris.MessageType.CREATE)

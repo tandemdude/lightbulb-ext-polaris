@@ -7,11 +7,11 @@ import types
 from setuptools import find_namespace_packages
 from setuptools import setup
 
-name = "lightbulb"
+name = "polaris"
 
 
 def parse_meta():
-    with open(os.path.join(name, "ext", "polaris", "__init__.py")) as fp:
+    with open(os.path.join(name, "__init__.py")) as fp:
         code = fp.read()
 
     token_pattern = re.compile(
@@ -42,7 +42,7 @@ def parse_requirements_file(path):
 meta = parse_meta()
 
 setup(
-    name="lightbulb-ext-polaris",
+    name="polaris",
     version=meta.version,
     description="WIP",
     long_description=long_description(),

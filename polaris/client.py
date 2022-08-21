@@ -17,26 +17,25 @@
 # along with Lightbulb. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-__all__ = ["Client", "BotClient"]
+__all__ = ["Producer", "Consumer"]
 
 import asyncio
 import logging
 import typing as t
 
 import aioredis
-import hikari
 import orjson
 
 from . import messages
 
-_LOGGER = logging.getLogger("lightbulb.ext.polaris")
+_LOGGER = logging.getLogger("polaris")
 MessageHandlerT = t.Callable[[messages.Message], t.Coroutine[t.Any, t.Any, None]]
 
 
-class Client:
+class Producer:
     __slots__ = ("_redis_url", "_queue_name", "_resp_expire", "_redis_cli")
 
-    def __init__(self, redis_url: str, queue_name: str = "polaris", resp_expire: int = 15 * 60) -> None:
+    def __init__(self, redis_url: str, queue_name: str = "polaris-mq", resp_expire: int = 15 * 60) -> None:
         self._redis_url: str = redis_url
         self._queue_name: str = queue_name
         self._resp_expire: int = resp_expire
@@ -67,25 +66,21 @@ class Client:
         await self._redis_cli.close()
 
 
-class BotClient(Client):
+class Consumer(Producer):
     __slots__ = ("_app", "_poll_task", "_handlers", "_fallback_handler", "_resp_expire", "_running")
 
-    def __init__(self, app: hikari.GatewayBot, *args: t.Any, **kwargs: t.Any) -> None:
+    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
         super().__init__(*args, **kwargs)
-        self._app: hikari.GatewayBot = app
         self._running: bool = False
         self._poll_task: t.Optional[asyncio.Task[None]] = None
 
         self._handlers: t.Dict[t.Tuple[messages.MessageType, str], MessageHandlerT] = {}
         self._fallback_handler: t.Optional[MessageHandlerT] = None
 
-        self._app.subscribe(hikari.StartedEvent, self._run)
-        self._app.subscribe(hikari.StoppingEvent, self._close)
-
     async def _poll(self) -> t.AsyncIterator[bytes]:
         while True:
             async with self._redis_cli as r:
-                out = await r.brpop(f"{self._queue_name}-mq", 0)
+                out = await r.brpop(self._queue_name, 0)
                 yield out[1]
 
     async def _handle_messages(self) -> None:
@@ -101,17 +96,11 @@ class BotClient(Client):
             else:
                 _LOGGER.warning("Discarding message: %s (%s) as no handler was found", message.name, message.type)
 
-    async def _run(self, _: hikari.StartedEvent) -> None:
-        await self.run()
-
     async def run(self) -> None:
         if not self._running:
             _LOGGER.info("Listening for messages")
             self._poll_task = asyncio.create_task(self._handle_messages())
             self._running = True
-
-    async def _close(self, _: hikari.StoppingEvent) -> None:
-        await self.close()
 
     async def close(self) -> None:
         if self._poll_task is not None:

@@ -1,7 +1,6 @@
 # Polaris
 
-Redis-backed FIFO message queue implementation that can hook into a discord bot written with hikari-lightbulb. This
-is eventually intended to be the backend communication between a bot and a web dashboard.
+Redis-backed FIFO message queue implementation.
 
 ## Installation
 
@@ -15,11 +14,12 @@ pip install git+https://github.com/tandemdude/lightbulb-ext-polaris.git
 
 ```python
 # Receiving messages
+import hikari
 import lightbulb
-from lightbulb.ext import polaris
+import polaris
 
 bot = lightbulb.BotApp(...)
-bot.d.polaris = polaris.BotClient(bot, "redis://your_redis_server_url")
+bot.d.polaris = polaris.Consumer(bot, "redis://your_redis_server_url")
 
 
 @bot.d.polaris.handler_for("test_message", polaris.MessageType.CREATE)
@@ -27,14 +27,22 @@ async def on_test_message(message: polaris.Message):
     print(f"Message received: {message}")
 
 
+@bot.listen(hikari.StartedEvent)
+async def on_started(_):
+    await bot.d.polaris.run()
+@bot.listen(hikari.StoppingEvent)
+async def on_stopping(_):
+    await bot.d.polaris.close()
+
+
 bot.run()
 ```
 
 ```python
 # Sending messages
-from lightbulb.ext import polaris
+import polaris
 
-client = polaris.Client("redis://your_redis_server_url")
+client = polaris.Producer("redis://your_redis_server_url")
 
 msg = polaris.Message(polaris.MessageType.CREATE, "test_message", {"foo": "bar"})
 await client.send_message(msg)

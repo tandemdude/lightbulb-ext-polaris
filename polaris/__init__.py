@@ -22,8 +22,8 @@ from .messages import *
 
 __all__ = [
     "client",
-    "Client",
-    "BotClient",
+    "Producer",
+    "Consumer",
     "Message",
     "MessageType",
     "Response"
